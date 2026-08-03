@@ -31,3 +31,24 @@ func TestAnalyzerUsesClockForRecordTimestamps(t *testing.T) {
 	require.Equal(1, total)
 	require.Empty(analyzer.records)
 }
+
+func TestHardNATBehaviorsUseLimitedRandomProbes(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		mode int
+	}{
+		{name: "mode2", mode: DetectMode2},
+		{name: "mode4", mode: DetectMode4},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			sender, receiver := getBehaviorByModeAndIndex(tc.mode, 0)
+
+			if sender.PortsRandomNumber != defaultRandomPortProbes {
+				t.Fatalf("unexpected random port probes: got %d, want %d", sender.PortsRandomNumber, defaultRandomPortProbes)
+			}
+			if receiver.ListenRandomPorts != defaultRandomListenPorts {
+				t.Fatalf("unexpected random listen ports: got %d, want %d", receiver.ListenRandomPorts, defaultRandomListenPorts)
+			}
+		})
+	}
+}

@@ -26,12 +26,15 @@ import (
 
 	"github.com/fatedier/golib/pool"
 	"golang.org/x/net/ipv4"
+	"golang.org/x/time/rate"
 	"k8s.io/apimachinery/pkg/util/sets"
 
 	"github.com/fatedier/frp/pkg/msg"
 	"github.com/fatedier/frp/pkg/transport"
 	"github.com/fatedier/frp/pkg/util/xlog"
 )
+
+var detectMessageLimiter = rate.NewLimiter(rate.Limit(200), 20)
 
 var (
 	// mode 0: simple detect mode, usually for both EasyNAT or HardNAT & EasyNAT(Public Network)
@@ -193,7 +196,7 @@ func MakeHole(ctx context.Context, listenConn *net.UDPConn, m *msg.NatHoleResp, 
 	xl := xlog.FromContextSafe(ctx)
 	transactionID := NewTransactionID()
 	sendToRangePortsFunc := func(conn *net.UDPConn, addr string) error {
-		return sendSidMessage(ctx, conn, m.Sid, transactionID, addr, key, m.DetectBehavior.TTL)
+		return sendDetectSidMessage(ctx, conn, m.Sid, transactionID, addr, key, m.DetectBehavior.TTL)
 	}
 
 	listenConns := []*net.UDPConn{listenConn}
@@ -226,7 +229,7 @@ func MakeHole(ctx context.Context, listenConn *net.UDPConn, m *msg.NatHoleResp, 
 	detectAddrs = slices.Compact(detectAddrs)
 	for _, detectAddr := range detectAddrs {
 		for _, conn := range listenConns {
-			if err := sendSidMessage(ctx, conn, m.Sid, transactionID, detectAddr, key, m.DetectBehavior.TTL); err != nil {
+			if err := sendToRangePortsFunc(conn, detectAddr); err != nil {
 				xl.Tracef("send sid message from %s to %s error: %v", conn.LocalAddr(), detectAddr, err)
 			}
 		}
@@ -331,6 +334,16 @@ func waitDetectMessage(
 		}
 		return raddr, nil
 	}
+}
+
+func sendDetectSidMessage(
+	ctx context.Context, conn *net.UDPConn,
+	sid string, transactionID string, addr string, key []byte, ttl int,
+) error {
+	if err := detectMessageLimiter.Wait(ctx); err != nil {
+		return err
+	}
+	return sendSidMessage(ctx, conn, sid, transactionID, addr, key, ttl)
 }
 
 func sendSidMessage(
