@@ -5,6 +5,9 @@ project_name: frp
 env:
   - CGO_ENABLED=0
 
+snapshot:
+  version_template: '{{ .Env.SNAPSHOT_VERSION }}'
+
 builds:
   - id: frpc
     main: ./cmd/frpc

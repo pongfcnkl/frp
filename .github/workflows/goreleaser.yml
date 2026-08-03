@@ -68,21 +68,31 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
 
+      - name: Set snapshot metadata
+        if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+        env:
+          TIMESTAMPED_RELEASE: ${{ github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.timestamped_release) }}
+        run: |
+          set -euo pipefail
+
+          short_sha="${GITHUB_SHA::8}"
+          if [ "$TIMESTAMPED_RELEASE" = "true" ]; then
+            build_time="$(TZ=Asia/Shanghai date +'%Y%m%d-%H%M')"
+            title_time="$(TZ=Asia/Shanghai date +'%Y-%m-%d %H:%M CST')"
+
+            echo "SNAPSHOT_VERSION=build-${build_time}-${short_sha}" >> "$GITHUB_ENV"
+            echo "TIMESTAMPED_RELEASE_TAG=build-${build_time}" >> "$GITHUB_ENV"
+            echo "TIMESTAMPED_RELEASE_TITLE=Build ${title_time}" >> "$GITHUB_ENV"
+          else
+            echo "SNAPSHOT_VERSION=continuous-${short_sha}" >> "$GITHUB_ENV"
+          fi
+
       - name: Build snapshot artifacts
         if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
         uses: goreleaser/goreleaser-action@v7
         with:
           version: latest
           args: release --snapshot --clean --skip=publish --release-notes=./Release.md
-
-      - name: Set timestamped release metadata
-        if: ${{ github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.timestamped_release) }}
-        run: |
-          build_time="$(TZ=Asia/Shanghai date +'%Y%m%d-%H%M')"
-          title_time="$(TZ=Asia/Shanghai date +'%Y-%m-%d %H:%M CST')"
-
-          echo "TIMESTAMPED_RELEASE_TAG=build-${build_time}" >> "$GITHUB_ENV"
-          echo "TIMESTAMPED_RELEASE_TITLE=Build ${title_time}" >> "$GITHUB_ENV"
 
       - name: Upload snapshot release assets
         if: ${{ !startsWith(github.ref, 'refs/tags/v') && github.event_name != 'schedule' && !(github.event_name == 'workflow_dispatch' && inputs.timestamped_release) }}
