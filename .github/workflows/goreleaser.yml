@@ -1,6 +1,9 @@
 name: goreleaser
 
 on:
+  push:
+    tags:
+      - 'v*'
   workflow_dispatch:
 
 permissions:
@@ -15,7 +18,6 @@ jobs:
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
-          ref: v0.62.1
 
       - name: Set up Go
         uses: actions/setup-go@v6
@@ -50,7 +52,7 @@ jobs:
           yarn build
 
       - name: Make All
-        run: ./package.sh
+        run: bash ./package.sh
 
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v7
@@ -58,4 +60,4 @@ jobs:
           version: latest
           args: release --clean --release-notes=./Release.md
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ github.token }}
