@@ -2,16 +2,86 @@ version: 2
 
 project_name: frp
 
+env:
+  - CGO_ENABLED=0
+
 builds:
-  - skip: true
+  - id: frpc
+    main: ./cmd/frpc
+    binary: frpc
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w
+    tags:
+      - frpc
+    targets:
+      - darwin_amd64
+      - darwin_arm64
+      - freebsd_amd64
+      - openbsd_amd64
+      - linux_amd64
+      - linux_arm_5
+      - linux_arm_7
+      - linux_arm64
+      - linux_mips64
+      - linux_mips64le
+      - linux_mips_softfloat
+      - linux_mipsle_softfloat
+      - linux_riscv64
+      - linux_loong64
+      - windows_amd64
+      - windows_arm64
+      - android_arm64
+  - id: frps
+    main: ./cmd/frps
+    binary: frps
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w
+    tags:
+      - frps
+    targets:
+      - darwin_amd64
+      - darwin_arm64
+      - freebsd_amd64
+      - openbsd_amd64
+      - linux_amd64
+      - linux_arm_5
+      - linux_arm_7
+      - linux_arm64
+      - linux_mips64
+      - linux_mips64le
+      - linux_mips_softfloat
+      - linux_mipsle_softfloat
+      - linux_riscv64
+      - linux_loong64
+      - windows_amd64
+      - windows_arm64
+      - android_arm64
+
+archives:
+  - id: frp
+    ids:
+      - frpc
+      - frps
+    formats:
+      - tar.gz
+    format_overrides:
+      - goos: windows
+        formats:
+          - zip
+    name_template: >-
+      {{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ with .Arm }}v{{ . }}{{ end }}{{ with .Mips }}_{{ . }}{{ end }}
+    files:
+      - LICENSE
+      - conf/frpc.toml
+      - conf/frps.toml
 
 checksum:
   name_template: '{{ .ProjectName }}_sha256_checksums.txt'
   algorithm: sha256
-  extra_files:
-    - glob: ./release/packages/*
 
 release:
   draft: false
-  extra_files:
-    - glob: ./release/packages/*

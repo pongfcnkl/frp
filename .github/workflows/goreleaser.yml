@@ -38,13 +38,16 @@ jobs:
       - name: Add web npm binaries to PATH
         run: echo "$GITHUB_WORKSPACE/web/node_modules/.bin" >> "$GITHUB_PATH"
 
-      - name: Make All
-        run: bash ./package.sh
+      - name: Build web assets
+        working-directory: web
+        run: |
+          npm run build --workspace frps
+          npm run build --workspace frpc
 
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v7
         with:
           version: latest
-          args: ${{ github.event_name == 'workflow_dispatch' && 'release --snapshot --clean --skip=publish --release-notes=./Release.md' || 'release --clean --release-notes=./Release.md' }}
+          args: release --clean --release-notes=./Release.md
         env:
           GITHUB_TOKEN: ${{ github.token }}
