@@ -109,14 +109,13 @@ jobs:
             gh release edit "$CONTINUOUS_TAG" \
               --title "Continuous build" \
               --notes "$notes" \
-              --prerelease \
-              --latest=false
+              --prerelease=false \
+              --latest
           else
             gh release create "$CONTINUOUS_TAG" \
               --title "Continuous build" \
               --notes "$notes" \
-              --prerelease \
-              --latest=false
+              --latest
           fi
 
           gh release upload "$CONTINUOUS_TAG" \
@@ -140,14 +139,13 @@ jobs:
             gh release edit "$TIMESTAMPED_RELEASE_TAG" \
               --title "$TIMESTAMPED_RELEASE_TITLE" \
               --notes "$notes" \
-              --prerelease \
-              --latest=false
+              --prerelease=false \
+              --latest
           else
             gh release create "$TIMESTAMPED_RELEASE_TAG" \
               --title "$TIMESTAMPED_RELEASE_TITLE" \
               --notes "$notes" \
-              --prerelease \
-              --latest=false
+              --latest
           fi
 
           gh release upload "$TIMESTAMPED_RELEASE_TAG" \
