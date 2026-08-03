@@ -58,6 +58,6 @@ jobs:
         uses: goreleaser/goreleaser-action@v7
         with:
           version: latest
-          args: release --clean --release-notes=./Release.md
+          args: ${{ github.event_name == 'workflow_dispatch' && 'release --snapshot --clean --skip=publish --release-notes=./Release.md' || 'release --clean --release-notes=./Release.md' }}
         env:
           GITHUB_TOKEN: ${{ github.token }}

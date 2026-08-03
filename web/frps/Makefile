@@ -1,10 +1,10 @@
 .PHONY: dist install build preview lint
 
 install:
-	@cd .. && npm install
+	@cd .. && npm ci
 
 build: install
-	@npm run build
+	@cd .. && npm run build --workspace frps
 
 dev:
 	@npm run dev
