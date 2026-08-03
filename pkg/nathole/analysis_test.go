@@ -1,11 +1,15 @@
 package nathole
 
 import (
+	"context"
+	"net"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
 	clocktesting "k8s.io/utils/clock/testing"
+
+	"github.com/fatedier/frp/pkg/msg"
 )
 
 func TestAnalyzerUsesClockForRecordTimestamps(t *testing.T) {
@@ -68,4 +72,23 @@ func TestControllerAppliesNatHoleBehaviorOptions(t *testing.T) {
 
 	require.Equal(t, 120, behavior.PortsRandomNumber)
 	require.Equal(t, 32, behavior.ListenRandomPorts)
+}
+
+func TestMakeHoleClosesListenConnOnTimeout(t *testing.T) {
+	require := require.New(t)
+
+	conn, err := net.ListenUDP("udp4", nil)
+	require.NoError(err)
+
+	_, _, err = MakeHole(context.Background(), conn, &msg.NatHoleResp{
+		Sid: "sid",
+		DetectBehavior: msg.NatHoleDetectBehavior{
+			Role:          DetectRoleSender,
+			ReadTimeoutMs: 5,
+		},
+	}, []byte("key"))
+	require.Error(err)
+
+	_, err = conn.WriteToUDP([]byte("closed"), conn.LocalAddr().(*net.UDPAddr))
+	require.Error(err)
 }

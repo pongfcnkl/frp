@@ -226,12 +226,21 @@ func MakeHole(
 	makeHoleOptions.complete()
 	configureDetectMessageLimiter(makeHoleOptions.DetectMessageRateLimit, makeHoleOptions.DetectMessageBurst)
 
+	var selectedConn *net.UDPConn
 	transactionID := NewTransactionID()
 	sendToRangePortsFunc := func(conn *net.UDPConn, addr string) error {
 		return sendDetectSidMessage(ctx, conn, m.Sid, transactionID, addr, key, m.DetectBehavior.TTL)
 	}
 
 	listenConns := []*net.UDPConn{listenConn}
+	defer func() {
+		for _, conn := range listenConns {
+			if conn != selectedConn {
+				_ = conn.Close()
+			}
+		}
+	}()
+
 	var detectAddrs []string
 	if m.DetectBehavior.Role == DetectRoleSender {
 		// sender
@@ -289,6 +298,7 @@ func MakeHole(
 		if err != nil {
 			return nil, nil, fmt.Errorf("wait detect message error: %v", err)
 		}
+		selectedConn = listenConns[0]
 		return listenConns[0], raddr, nil
 	}
 
@@ -296,7 +306,7 @@ func MakeHole(
 		lConn *net.UDPConn
 		raddr *net.UDPAddr
 	}
-	resultCh := make(chan result)
+	resultCh := make(chan result, 1)
 	for _, conn := range listenConns {
 		go func(lConn *net.UDPConn) {
 			addr, err := waitDetectMessage(ctx, lConn, m.Sid, key, timeout, m.DetectBehavior.Role)
@@ -314,6 +324,7 @@ func MakeHole(
 
 	select {
 	case result := <-resultCh:
+		selectedConn = result.lConn
 		return result.lConn, result.raddr, nil
 	case <-time.After(timeout):
 		return nil, nil, fmt.Errorf("wait detect message timeout")
