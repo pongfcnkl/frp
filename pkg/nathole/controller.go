@@ -95,15 +95,36 @@ type Controller struct {
 	clientCfgs map[string]*ClientCfg
 	sessions   map[string]*Session
 	analyzer   *Analyzer
+	options    ControllerOptions
 
 	mu sync.RWMutex
 }
 
-func NewController(analysisDataReserveDuration time.Duration) (*Controller, error) {
+type ControllerOptions struct {
+	RandomPortProbes  int
+	RandomListenPorts int
+}
+
+func (o *ControllerOptions) complete() {
+	if o.RandomPortProbes <= 0 {
+		o.RandomPortProbes = defaultRandomPortProbes
+	}
+	if o.RandomListenPorts <= 0 {
+		o.RandomListenPorts = defaultRandomListenPorts
+	}
+}
+
+func NewController(analysisDataReserveDuration time.Duration, opts ...ControllerOptions) (*Controller, error) {
+	options := ControllerOptions{}
+	if len(opts) > 0 {
+		options = opts[0]
+	}
+	options.complete()
 	return &Controller{
 		clientCfgs: make(map[string]*ClientCfg),
 		sessions:   make(map[string]*Session),
 		analyzer:   NewAnalyzer(analysisDataReserveDuration),
+		options:    options,
 	}, nil
 }
 
@@ -315,6 +336,8 @@ func (c *Controller) analysis(session *Session) (*msg.NatHoleResp, *msg.NatHoleR
 	session.genAnalysisKey()
 
 	mode, index, cBehavior, vBehavior := c.analyzer.GetRecommandBehaviors(session.analysisKey, cNatFeature, vNatFeature)
+	c.applyBehaviorOptions(&cBehavior)
+	c.applyBehaviorOptions(&vBehavior)
 	session.recommandMode = mode
 	session.recommandIndex = index
 	session.cBehavior = cBehavior
@@ -342,6 +365,15 @@ func (c *Controller) analysis(session *Session) (*msg.NatHoleResp, *msg.NatHoleR
 	log.Debugf("sid [%s] visitor detect behavior: %+v", session.sid, vResp.DetectBehavior)
 	log.Debugf("sid [%s] client detect behavior: %+v", session.sid, cResp.DetectBehavior)
 	return vResp, cResp, nil
+}
+
+func (c *Controller) applyBehaviorOptions(behavior *RecommandBehavior) {
+	if behavior.PortsRandomNumber > 0 {
+		behavior.PortsRandomNumber = c.options.RandomPortProbes
+	}
+	if behavior.ListenRandomPorts > 0 {
+		behavior.ListenRandomPorts = c.options.RandomListenPorts
+	}
 }
 
 func newNatHoleResponse(

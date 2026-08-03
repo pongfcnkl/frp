@@ -52,3 +52,20 @@ func TestHardNATBehaviorsUseLimitedRandomProbes(t *testing.T) {
 		})
 	}
 }
+
+func TestControllerAppliesNatHoleBehaviorOptions(t *testing.T) {
+	controller, err := NewController(time.Hour, ControllerOptions{
+		RandomPortProbes:  120,
+		RandomListenPorts: 32,
+	})
+	require.NoError(t, err)
+
+	behavior := RecommandBehavior{
+		PortsRandomNumber: defaultRandomPortProbes,
+		ListenRandomPorts: defaultRandomListenPorts,
+	}
+	controller.applyBehaviorOptions(&behavior)
+
+	require.Equal(t, 120, behavior.PortsRandomNumber)
+	require.Equal(t, 32, behavior.ListenRandomPorts)
+}

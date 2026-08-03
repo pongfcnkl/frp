@@ -92,6 +92,8 @@ type ServerConfig struct {
 	UDPPacketSize int64 `json:"udpPacketSize,omitempty"`
 	// NatHoleAnalysisDataReserveHours specifies the hours to reserve nat hole analysis data.
 	NatHoleAnalysisDataReserveHours int64 `json:"natholeAnalysisDataReserveHours,omitempty"`
+	// NatHole specifies NAT hole punching behavior.
+	NatHole ServerNatHoleConfig `json:"natHole,omitempty"`
 
 	AllowPorts []types.PortsRange `json:"allowPorts,omitempty"`
 
@@ -122,7 +124,22 @@ func (c *ServerConfig) Complete() error {
 	c.UserConnTimeout = util.EmptyOr(c.UserConnTimeout, 10)
 	c.UDPPacketSize = util.EmptyOr(c.UDPPacketSize, 1500)
 	c.NatHoleAnalysisDataReserveHours = util.EmptyOr(c.NatHoleAnalysisDataReserveHours, 7*24)
+	c.NatHole.Complete()
 	return nil
+}
+
+type ServerNatHoleConfig struct {
+	// RandomPortProbes specifies how many random candidate ports are sent to
+	// the peer when the selected XTCP strategy requires random port probing.
+	RandomPortProbes int `json:"randomPortProbes,omitempty"`
+	// RandomListenPorts specifies how many extra UDP sockets are opened when
+	// the selected XTCP strategy requires listening on random ports.
+	RandomListenPorts int `json:"randomListenPorts,omitempty"`
+}
+
+func (c *ServerNatHoleConfig) Complete() {
+	c.RandomPortProbes = util.EmptyOr(c.RandomPortProbes, 300)
+	c.RandomListenPorts = util.EmptyOr(c.RandomListenPorts, 64)
 }
 
 type AuthServerConfig struct {

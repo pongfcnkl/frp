@@ -64,6 +64,7 @@ type ClientCommonConfig struct {
 	WebServer  WebServerConfig       `json:"webServer,omitempty"`
 	Transport  ClientTransportConfig `json:"transport,omitempty"`
 	VirtualNet VirtualNetConfig      `json:"virtualNet,omitempty"`
+	NatHole    ClientNatHoleConfig   `json:"natHole,omitempty"`
 
 	// FeatureGates specifies a set of feature gates to enable or disable.
 	// This can be used to enable alpha/beta features or disable default features.
@@ -94,9 +95,26 @@ func (c *ClientCommonConfig) Complete() error {
 	c.Log.Complete()
 	c.Transport.Complete()
 	c.WebServer.Complete()
+	c.NatHole.Complete()
 
 	c.UDPPacketSize = util.EmptyOr(c.UDPPacketSize, 1500)
 	return nil
+}
+
+type ClientNatHoleConfig struct {
+	// DetectMessageRateLimit specifies the process-wide max XTCP NAT hole
+	// detect messages sent per second. Set to 0 to use the default.
+	DetectMessageRateLimit int `json:"detectMessageRateLimit,omitempty"`
+	// DetectMessageBurst specifies the process-wide burst size for XTCP NAT
+	// hole detect messages. Set to 0 to use the default.
+	DetectMessageBurst int `json:"detectMessageBurst,omitempty"`
+}
+
+func (c *ClientNatHoleConfig) Complete() {
+	if c.DetectMessageRateLimit <= 0 {
+		c.DetectMessageRateLimit = 200
+	}
+	c.DetectMessageBurst = util.EmptyOr(c.DetectMessageBurst, 20)
 }
 
 type ClientTransportConfig struct {

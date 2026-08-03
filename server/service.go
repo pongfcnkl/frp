@@ -350,7 +350,13 @@ func NewService(cfg *v1.ServerConfig) (*Service, error) {
 	})
 
 	// Create nat hole controller.
-	nc, err := nathole.NewController(time.Duration(cfg.NatHoleAnalysisDataReserveHours) * time.Hour)
+	nc, err := nathole.NewController(
+		time.Duration(cfg.NatHoleAnalysisDataReserveHours)*time.Hour,
+		nathole.ControllerOptions{
+			RandomPortProbes:  cfg.NatHole.RandomPortProbes,
+			RandomListenPorts: cfg.NatHole.RandomListenPorts,
+		},
+	)
 	if err != nil {
 		return nil, fmt.Errorf("create nat hole controller error, %v", err)
 	}

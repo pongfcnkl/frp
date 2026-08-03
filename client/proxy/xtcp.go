@@ -112,7 +112,16 @@ func (pxy *XTCPProxy) InWorkConn(conn net.Conn, startWorkConnMsg *msg.StartWorkC
 		natHoleRespMsg.AssistedAddrs, natHoleRespMsg.DetectBehavior)
 
 	listenConn := prepareResult.ListenConn
-	newListenConn, raddr, err := nathole.MakeHole(pxy.ctx, listenConn, natHoleRespMsg, []byte(pxy.cfg.Secretkey))
+	newListenConn, raddr, err := nathole.MakeHole(
+		pxy.ctx,
+		listenConn,
+		natHoleRespMsg,
+		[]byte(pxy.cfg.Secretkey),
+		nathole.MakeHoleOptions{
+			DetectMessageRateLimit: pxy.clientCfg.NatHole.DetectMessageRateLimit,
+			DetectMessageBurst:     pxy.clientCfg.NatHole.DetectMessageBurst,
+		},
+	)
 	if err != nil {
 		listenConn.Close()
 		xl.Warnf("make hole error: %v", err)

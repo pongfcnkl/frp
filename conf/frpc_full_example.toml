@@ -381,6 +381,16 @@ localAddr = "127.0.0.1:80"
 crtPath = "./server.crt"
 keyPath = "./server.key"
 
+# NAT hole punching send limits for XTCP.
+[natHole]
+# Process-wide max XTCP NAT hole detect messages sent per second.
+# Lower values reduce UDP burst pressure on the local network/router.
+# Default: 200
+detectMessageRateLimit = 200
+# Process-wide burst size for XTCP NAT hole detect messages.
+# Default: 20
+detectMessageBurst = 20
+
 [[proxies]]
 name = "secret_tcp"
 # If the type is secret tcp, remotePort is useless

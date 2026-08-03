@@ -302,7 +302,16 @@ func (sv *XTCPVisitor) makeNatHole() {
 		natHoleRespMsg.Sid, natHoleRespMsg.Protocol, natHoleRespMsg.CandidateAddrs,
 		natHoleRespMsg.AssistedAddrs, natHoleRespMsg.DetectBehavior)
 
-	newListenConn, raddr, err := nathole.MakeHole(sv.ctx, listenConn, natHoleRespMsg, []byte(sv.cfg.SecretKey))
+	newListenConn, raddr, err := nathole.MakeHole(
+		sv.ctx,
+		listenConn,
+		natHoleRespMsg,
+		[]byte(sv.cfg.SecretKey),
+		nathole.MakeHoleOptions{
+			DetectMessageRateLimit: sv.clientCfg.NatHole.DetectMessageRateLimit,
+			DetectMessageBurst:     sv.clientCfg.NatHole.DetectMessageBurst,
+		},
+	)
 	if err != nil {
 		listenConn.Close()
 		xl.Warnf("make hole error: %v", err)

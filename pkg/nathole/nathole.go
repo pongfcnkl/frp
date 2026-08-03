@@ -34,7 +34,12 @@ import (
 	"github.com/fatedier/frp/pkg/util/xlog"
 )
 
-var detectMessageLimiter = rate.NewLimiter(rate.Limit(200), 20)
+const (
+	defaultDetectMessageRateLimit = 200
+	defaultDetectMessageBurst     = 20
+)
+
+var detectMessageLimiter = rate.NewLimiter(rate.Limit(defaultDetectMessageRateLimit), defaultDetectMessageBurst)
 
 var (
 	// mode 0: simple detect mode, usually for both EasyNAT or HardNAT & EasyNAT(Public Network)
@@ -76,6 +81,20 @@ type PrepareOptions struct {
 	// DisableAssistedAddrs disables the use of local network interfaces
 	// for assisted connections during NAT traversal
 	DisableAssistedAddrs bool
+}
+
+type MakeHoleOptions struct {
+	DetectMessageRateLimit int
+	DetectMessageBurst     int
+}
+
+func (o *MakeHoleOptions) complete() {
+	if o.DetectMessageRateLimit <= 0 {
+		o.DetectMessageRateLimit = defaultDetectMessageRateLimit
+	}
+	if o.DetectMessageBurst <= 0 {
+		o.DetectMessageBurst = defaultDetectMessageBurst
+	}
 }
 
 type PrepareResult struct {
@@ -192,8 +211,21 @@ func ExchangeInfo(
 }
 
 // MakeHole is used to make a NAT hole between client and visitor.
-func MakeHole(ctx context.Context, listenConn *net.UDPConn, m *msg.NatHoleResp, key []byte) (*net.UDPConn, *net.UDPAddr, error) {
+func MakeHole(
+	ctx context.Context,
+	listenConn *net.UDPConn,
+	m *msg.NatHoleResp,
+	key []byte,
+	opts ...MakeHoleOptions,
+) (*net.UDPConn, *net.UDPAddr, error) {
 	xl := xlog.FromContextSafe(ctx)
+	makeHoleOptions := MakeHoleOptions{}
+	if len(opts) > 0 {
+		makeHoleOptions = opts[0]
+	}
+	makeHoleOptions.complete()
+	configureDetectMessageLimiter(makeHoleOptions.DetectMessageRateLimit, makeHoleOptions.DetectMessageBurst)
+
 	transactionID := NewTransactionID()
 	sendToRangePortsFunc := func(conn *net.UDPConn, addr string) error {
 		return sendDetectSidMessage(ctx, conn, m.Sid, transactionID, addr, key, m.DetectBehavior.TTL)
@@ -334,6 +366,11 @@ func waitDetectMessage(
 		}
 		return raddr, nil
 	}
+}
+
+func configureDetectMessageLimiter(limit int, burst int) {
+	detectMessageLimiter.SetLimit(rate.Limit(limit))
+	detectMessageLimiter.SetBurst(burst)
 }
 
 func sendDetectSidMessage(

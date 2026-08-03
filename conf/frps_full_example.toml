@@ -148,6 +148,16 @@ udpPacketSize = 1500
 # Retention time for NAT hole punching strategy data.
 natholeAnalysisDataReserveHours = 168
 
+# NAT hole punching strategy limits for XTCP.
+[natHole]
+# Number of random peer ports to probe when a NAT hole punching strategy needs random port probing.
+# Lower values reduce UDP burst pressure, but may reduce XTCP success rate on difficult NATs.
+# Default: 300
+randomPortProbes = 300
+# Number of extra UDP sockets to listen on when a NAT hole punching strategy needs random listening ports.
+# Default: 64
+randomListenPorts = 64
+
 # ssh tunnel gateway
 # If you want to enable this feature, the bindPort parameter is required, while others are optional.
 # By default, this feature is disabled. It will be enabled if bindPort is greater than 0.

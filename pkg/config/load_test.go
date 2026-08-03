@@ -34,6 +34,9 @@ quicBindPort = 7001
 tcpmuxHTTPConnectPort = 7005
 custom404Page = "/abc.html"
 transport.tcpKeepalive = 10
+[natHole]
+randomPortProbes = 120
+randomListenPorts = 32
 `
 
 const yamlServerContent = `
@@ -44,6 +47,9 @@ tcpmuxHTTPConnectPort: 7005
 custom404Page: /abc.html
 transport:
   tcpKeepalive: 10
+natHole:
+  randomPortProbes: 120
+  randomListenPorts: 32
 `
 
 const jsonServerContent = `
@@ -55,6 +61,10 @@ const jsonServerContent = `
   "custom404Page": "/abc.html",
   "transport": {
     "tcpKeepalive": 10
+  },
+  "natHole": {
+    "randomPortProbes": 120,
+    "randomListenPorts": 32
   }
 }
 `
@@ -80,8 +90,29 @@ func TestLoadServerConfig(t *testing.T) {
 			require.EqualValues(7005, svrCfg.TCPMuxHTTPConnectPort)
 			require.EqualValues("/abc.html", svrCfg.Custom404Page)
 			require.EqualValues(10, svrCfg.Transport.TCPKeepAlive)
+			require.EqualValues(120, svrCfg.NatHole.RandomPortProbes)
+			require.EqualValues(32, svrCfg.NatHole.RandomListenPorts)
 		})
 	}
+}
+
+func TestLoadClientNatHoleConfig(t *testing.T) {
+	require := require.New(t)
+
+	content := `
+serverAddr = "127.0.0.1"
+serverPort = 7000
+
+[natHole]
+detectMessageRateLimit = 80
+detectMessageBurst = 8
+`
+
+	clientCfg := v1.ClientConfig{}
+	err := LoadConfigure([]byte(content), &clientCfg, true)
+	require.NoError(err)
+	require.EqualValues(80, clientCfg.NatHole.DetectMessageRateLimit)
+	require.EqualValues(8, clientCfg.NatHole.DetectMessageBurst)
 }
 
 // Test that loading in strict mode fails when the config is invalid.

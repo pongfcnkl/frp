@@ -30,6 +30,8 @@ func TestServerConfigComplete(t *testing.T) {
 	require.EqualValues("token", c.Auth.Method)
 	require.Equal(true, lo.FromPtr(c.Transport.TCPMux))
 	require.Equal(true, lo.FromPtr(c.DetailedErrorsToClient))
+	require.Equal(300, c.NatHole.RandomPortProbes)
+	require.Equal(64, c.NatHole.RandomListenPorts)
 }
 
 func TestAuthServerConfig_Complete(t *testing.T) {

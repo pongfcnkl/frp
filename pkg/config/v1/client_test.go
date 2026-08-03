@@ -34,6 +34,8 @@ func TestClientConfigComplete(t *testing.T) {
 	require.Equal(true, lo.FromPtr(c.Transport.TLS.Enable))
 	require.Equal(true, lo.FromPtr(c.Transport.TLS.DisableCustomTLSFirstByte))
 	require.NotEmpty(c.NatHoleSTUNServer)
+	require.Equal(200, c.NatHole.DetectMessageRateLimit)
+	require.Equal(20, c.NatHole.DetectMessageBurst)
 }
 
 func TestAuthClientConfig_Complete(t *testing.T) {
