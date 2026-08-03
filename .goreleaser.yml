@@ -76,7 +76,7 @@ archives:
         formats:
           - zip
     name_template: >-
-      {{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ with .Arm }}v{{ . }}{{ end }}{{ with .Mips }}_{{ . }}{{ end }}
+      {{ .ProjectName }}_{{ .Os }}_{{ .Arch }}{{ with .Arm }}v{{ . }}{{ end }}{{ with .Mips }}_{{ . }}{{ end }}_{{ .Version }}
     files:
       - LICENSE
       - conf/frpc.toml

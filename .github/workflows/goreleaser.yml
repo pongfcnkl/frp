@@ -75,16 +75,15 @@ jobs:
         run: |
           set -euo pipefail
 
-          short_sha="${GITHUB_SHA::8}"
           if [ "$TIMESTAMPED_RELEASE" = "true" ]; then
             build_time="$(TZ=Asia/Shanghai date +'%Y%m%d-%H%M')"
             title_time="$(TZ=Asia/Shanghai date +'%Y-%m-%d %H:%M CST')"
 
-            echo "SNAPSHOT_VERSION=build-${build_time}-${short_sha}" >> "$GITHUB_ENV"
+            echo "SNAPSHOT_VERSION=build-${build_time}" >> "$GITHUB_ENV"
             echo "TIMESTAMPED_RELEASE_TAG=build-${build_time}" >> "$GITHUB_ENV"
             echo "TIMESTAMPED_RELEASE_TITLE=Build ${title_time}" >> "$GITHUB_ENV"
           else
-            echo "SNAPSHOT_VERSION=continuous-${short_sha}" >> "$GITHUB_ENV"
+            echo "SNAPSHOT_VERSION=continuous" >> "$GITHUB_ENV"
           fi
 
       - name: Build snapshot artifacts
