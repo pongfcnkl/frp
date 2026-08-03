@@ -28,28 +28,15 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: '22'
-          cache: yarn
-          cache-dependency-path: |
-            web/frps/yarn.lock
-            web/frpc/yarn.lock
+          cache: npm
+          cache-dependency-path: web/package-lock.json
 
-      - name: Enable Yarn
-        run: |
-          corepack enable
-          corepack prepare yarn@1.22.22 --activate
-          yarn --version
+      - name: Install web dependencies
+        working-directory: web
+        run: npm ci
 
-      - name: Build web assets (frps)
-        working-directory: web/frps
-        run: |
-          yarn install --frozen-lockfile
-          yarn build
-
-      - name: Build web assets (frpc)
-        working-directory: web/frpc
-        run: |
-          yarn install --frozen-lockfile
-          yarn build
+      - name: Add web npm binaries to PATH
+        run: echo "$GITHUB_WORKSPACE/web/node_modules/.bin" >> "$GITHUB_PATH"
 
       - name: Make All
         run: bash ./package.sh
