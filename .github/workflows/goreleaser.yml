@@ -6,7 +6,16 @@ on:
       - '**'
     tags:
       - 'v*'
+  schedule:
+    # GitHub cron uses UTC. This runs at 05:00 Asia/Shanghai.
+    - cron: '0 21 * * *'
   workflow_dispatch:
+    inputs:
+      timestamped_release:
+        description: 'Publish a timestamped release instead of updating continuous'
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: write
@@ -66,8 +75,17 @@ jobs:
           version: latest
           args: release --snapshot --clean --skip=publish --release-notes=./Release.md
 
+      - name: Set timestamped release metadata
+        if: ${{ github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.timestamped_release) }}
+        run: |
+          build_time="$(TZ=Asia/Shanghai date +'%Y%m%d-%H%M')"
+          title_time="$(TZ=Asia/Shanghai date +'%Y-%m-%d %H:%M CST')"
+
+          echo "TIMESTAMPED_RELEASE_TAG=build-${build_time}" >> "$GITHUB_ENV"
+          echo "TIMESTAMPED_RELEASE_TITLE=Build ${title_time}" >> "$GITHUB_ENV"
+
       - name: Upload snapshot release assets
-        if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+        if: ${{ !startsWith(github.ref, 'refs/tags/v') && github.event_name != 'schedule' && !(github.event_name == 'workflow_dispatch' && inputs.timestamped_release) }}
         env:
           GH_TOKEN: ${{ github.token }}
           CONTINUOUS_TAG: continuous
@@ -93,6 +111,37 @@ jobs:
           fi
 
           gh release upload "$CONTINUOUS_TAG" \
+            dist/*.tar.gz \
+            dist/*.zip \
+            dist/*checksums.txt \
+            --clobber
+
+      - name: Upload timestamped release assets
+        if: ${{ github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.timestamped_release) }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          git tag -f "$TIMESTAMPED_RELEASE_TAG" "$GITHUB_SHA"
+          git push -f origin "refs/tags/$TIMESTAMPED_RELEASE_TAG"
+
+          notes="Automated build from ${GITHUB_REF_NAME} at ${GITHUB_SHA}."
+          if gh release view "$TIMESTAMPED_RELEASE_TAG" >/dev/null 2>&1; then
+            gh release edit "$TIMESTAMPED_RELEASE_TAG" \
+              --title "$TIMESTAMPED_RELEASE_TITLE" \
+              --notes "$notes" \
+              --prerelease \
+              --latest=false
+          else
+            gh release create "$TIMESTAMPED_RELEASE_TAG" \
+              --title "$TIMESTAMPED_RELEASE_TITLE" \
+              --notes "$notes" \
+              --prerelease \
+              --latest=false
+          fi
+
+          gh release upload "$TIMESTAMPED_RELEASE_TAG" \
             dist/*.tar.gz \
             dist/*.zip \
             dist/*checksums.txt \
