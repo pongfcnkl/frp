@@ -3,6 +3,9 @@ name: goreleaser
 on:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   goreleaser:
     runs-on: ubuntu-latest
@@ -12,6 +15,7 @@ jobs:
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
+          ref: v0.62.1
 
       - name: Set up Go
         uses: actions/setup-go@v6
@@ -22,22 +26,28 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: '22'
-          cache: npm
+          cache: yarn
           cache-dependency-path: |
-            web/frps/package-lock.json
-            web/frpc/package-lock.json
+            web/frps/yarn.lock
+            web/frpc/yarn.lock
 
-      - name: Install dependencies and build web assets (frps)
+      - name: Enable Yarn
+        run: |
+          corepack enable
+          corepack prepare yarn@1.22.22 --activate
+          yarn --version
+
+      - name: Build web assets (frps)
         working-directory: web/frps
         run: |
-          npm ci
-          make build
+          yarn install --frozen-lockfile
+          yarn build
 
-      - name: Install dependencies and build web assets (frpc)
+      - name: Build web assets (frpc)
         working-directory: web/frpc
         run: |
-          npm ci
-          make build
+          yarn install --frozen-lockfile
+          yarn build
 
       - name: Make All
         run: ./package.sh
@@ -48,4 +58,4 @@ jobs:
           version: latest
           args: release --clean --release-notes=./Release.md
         env:
-          GITHUB_TOKEN: ${{ secrets.GPR_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
